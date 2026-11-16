@@ -1,0 +1,60 @@
+# Tour Pricing Dashboard
+
+A small, working demo of rule-based dynamic pricing for tours and activities: a dashboard that shows occupancy and days to departure for upcoming departures, suggests a price for each one, explains *why*, and lets you try "what if" scenarios.
+
+All data is **synthetic**. It does not come from any operator.
+
+## What it shows
+
+- **Next.js 16 App Router.** The page is a Server Component, so KPIs and the table are computed on the server. Only the simulator is a Client Component (`"use client"`).
+- **REST endpoints.** `GET /api/tours` returns the list with suggested prices. `GET /api/quote?basePrice=&occupancy=&days=` returns one quote and validates its input: a missing or invalid value gets a 400 with a readable message.
+- **A small design system on shadcn/ui** (Base UI primitives + Tailwind CSS 4): `OccupancyBadge`, `PriceDelta`, `KpiCard`, `ToursTable` and `PricingSimulator`, each documented in **Storybook 10** with every state (low/normal/high/full, price up/down/same, empty table, service error).
+- **Behaviour tests** with Vitest: 20 tests for the pricing rules and the quote endpoint.
+
+## The pricing rules (`src/lib/pricing.ts`)
+
+| Condition | Adjustment |
+|---|---|
+| Occupancy 90% or more | +25% |
+| Occupancy 70–89% | +15% |
+| Occupancy under 30% | −10% |
+| Departs within 2 days and under half full | −10% more |
+| Always | kept between 80% and 130% of the base price, rounded to whole dollars |
+
+Every adjustment adds a plain-language reason, so a person can check the suggestion instead of trusting a number. The rules are pure functions, so the server, the endpoint, the client and Storybook all use the same code and get the same result.
+
+A departure is **at risk** when it leaves in 7 days or less and is under half full.
+
+## Design decisions
+
+- **Quote function injected into the simulator.** In the app it calls the REST endpoint; in Storybook it calls the pure function directly, without a server. This keeps the component testable and the stories honest.
+- **The server page does not fetch its own API.** It imports the same functions the API uses. Calling your own route handler from a Server Component adds a network hop for nothing.
+- **Accessibility.** Occupancy level is written as text, not only shown as a colour. The price change has a screen-reader text ("versus base price …"). Quotes are announced with `aria-live`, and errors with `role="alert"`.
+- **Requests are cancelled.** When you move a slider fast, the previous request is aborted, so an old answer cannot overwrite a newer one.
+
+## Suggestions from tools and AI that were not accepted
+
+The rule here is that an AI or tool suggestion is a proposal, not a decision. These came up while building this:
+
+- **`npm install --force`** to get past a peer-dependency conflict between Vitest 5 and `@types/node@20`. Instead, `@types/node` was raised to 22, which matches the Node 22 runtime.
+- **`npm audit fix --force`** would have downgraded the shadcn CLI to 1.0 to remove a moderate `deepmerge` advisory. It was not applied. The remaining advisories are low or moderate and come from development tooling.
+- **`"vite": "latest"`**, added by the Storybook installer. It was pinned to `8.3.8` so builds are reproducible.
+- **Storybook's browser-testing add-on**, which would have pulled in Playwright. Only the docs add-on was installed; the logic is covered by Vitest.
+
+## Run it
+
+```bash
+npm install
+npm run dev              # http://localhost:3000
+npm test                 # Vitest
+npm run storybook        # http://localhost:6006
+npm run typecheck && npm run lint && npm run build
+```
+
+## How it was built
+
+Andrés Corredor defined the brief: a dashboard in the domain of tours and activities, to practise Next.js App Router, shadcn/ui and Storybook. The code was written with AI-assisted development (Claude Code), and each step was checked with typecheck, lint, tests, a production build and a smoke test of the running server. The Figma file for the components is Andrés's part of the work.
+
+Not covered yet: GraphQL, real data, authentication, and visual or browser tests.
+
+Note on `cn`: shadcn now imports `cn` from the `cn` package, published by the shadcn maintainer (`github.com/shadcn-ui/cn`), instead of `clsx` + `tailwind-merge`. `src/lib/utils.ts` re-exports it.
