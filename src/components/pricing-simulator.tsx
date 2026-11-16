@@ -108,7 +108,7 @@ export function PricingSimulator({ tourName, basePrice, initialOccupancy, initia
             <p className="text-sm text-muted-foreground">No quote available.</p>
           ) : quote ? (
             <div className="grid gap-2">
-              <PriceDelta basePrice={basePrice} price={quote.price} />
+              <PriceDelta basePrice={basePrice} price={quote.price} factor={quote.factor} />
               <ul className="list-disc pl-5 text-sm text-muted-foreground">
                 {quote.reasons.map((r) => (
                   <li key={r}>{r}</li>

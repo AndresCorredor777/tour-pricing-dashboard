@@ -32,6 +32,8 @@ A departure is **at risk** when it leaves in 7 days or less and is under half fu
 - **Quote function injected into the simulator.** In the app it calls the REST endpoint; in Storybook it calls the pure function directly, without a server. This keeps the component testable and the stories honest.
 - **The server page does not fetch its own API.** It imports the same functions the API uses. Calling your own route handler from a Server Component adds a network hop for nothing.
 - **Accessibility.** Occupancy level is written as text, not only shown as a colour. The price change has a screen-reader text ("versus base price …"). After the user moves a slider, a short summary ("Suggested price $56, -20% versus base") is announced politely; errors use `role="alert"`, outside that region. Nothing is announced on page load.
+- **Mobile first for the key number.** Under the `sm` breakpoint the departures table becomes a list of cards, so the suggested price is always visible instead of hidden in a horizontally scrolling table.
+- **The % shown comes from the rule, not from the rounded price.** $25 × 1.25 = $31.25 is shown as $31, which would read as +24% next to a reason that says +25%. The badge shows the rule's factor so the number and its reason agree.
 - **Requests are cancelled.** When you move a slider fast, the previous request is aborted, so an old answer cannot overwrite a newer one.
 
 ## Suggestions from tools and AI that were not accepted
