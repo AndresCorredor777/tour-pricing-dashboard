@@ -39,6 +39,27 @@ describe("suggestPrice", () => {
     expect(suggestPrice({ basePrice: 100, occupancy: 0.9, daysToDeparture: 1 }).price).toBe(125);
   });
 
+  it.each([
+    [0.3, 10, 100],
+    [0.69, 10, 100],
+    [0.7, 10, 115],
+    [0.89, 10, 115],
+    [0.9, 10, 125],
+    [0.5, 2, 100],
+    [0.49, 2, 90],
+    [0.49, 3, 100],
+  ])("occupancy %f with %i days gives %i (threshold edges)", (occupancy, days, price) => {
+    expect(suggestPrice({ basePrice: 100, occupancy, daysToDeparture: days }).price).toBe(price);
+  });
+
+  it("uses the same level as the badge for every adjustment", () => {
+    for (const o of [0.1, 0.3, 0.5, 0.7, 0.8, 0.9, 1]) {
+      const reason = suggestPrice({ basePrice: 100, occupancy: o, daysToDeparture: 10 }).reasons[0];
+      const expected = { full: /Almost full/, high: /High demand/, low: /Low demand/, normal: /Normal demand/ }[occupancyLevel(o)];
+      expect(reason).toMatch(expected);
+    }
+  });
+
   it("rounds to whole dollars", () => {
     expect(suggestPrice({ basePrice: 55, occupancy: 0.75, daysToDeparture: 5 }).price).toBe(63);
   });

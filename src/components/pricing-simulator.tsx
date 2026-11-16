@@ -34,6 +34,8 @@ export function PricingSimulator({ tourName, basePrice, initialOccupancy, initia
   const [days, setDays] = useState(initialDays);
   const [quote, setQuote] = useState<PriceSuggestion | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Solo se anuncia a lectores de pantalla después de que el usuario mueve un slider.
+  const [touched, setTouched] = useState(false);
   const occId = useId();
   const daysId = useId();
 
@@ -41,6 +43,7 @@ export function PricingSimulator({ tourName, basePrice, initialOccupancy, initia
     const controller = new AbortController();
     getQuote({ basePrice, occupancy: occupancyPct / 100, daysToDeparture: days }, controller.signal)
       .then((q) => {
+        if (controller.signal.aborted) return;
         setQuote(q);
         setError(null);
       })
@@ -69,7 +72,10 @@ export function PricingSimulator({ tourName, basePrice, initialOccupancy, initia
             max={100}
             step={5}
             value={[occupancyPct]}
-            onValueChange={(v) => setOccupancyPct(Array.isArray(v) ? v[0] : v)}
+            onValueChange={(v) => {
+              setTouched(true);
+              setOccupancyPct(Array.isArray(v) ? v[0] : v);
+            }}
           />
         </div>
         <div className="grid gap-2">
@@ -83,13 +89,23 @@ export function PricingSimulator({ tourName, basePrice, initialOccupancy, initia
             max={30}
             step={1}
             value={[days]}
-            onValueChange={(v) => setDays(Array.isArray(v) ? v[0] : v)}
+            onValueChange={(v) => {
+              setTouched(true);
+              setDays(Array.isArray(v) ? v[0] : v);
+            }}
           />
         </div>
 
-        <div aria-live="polite" className="rounded-lg border p-4">
+        {/* Resumen corto para lectores de pantalla; el bloque visible no se reanuncia completo. */}
+        <p aria-live="polite" aria-atomic="true" className="sr-only">
+          {touched && quote && !error ? `Suggested price $${quote.price}, ${Math.round((quote.factor - 1) * 100)}% versus base` : ""}
+        </p>
+        {error ? (
+          <p role="alert" className="text-sm text-red-700 dark:text-red-400">{error}</p>
+        ) : null}
+        <div className="rounded-lg border p-4">
           {error ? (
-            <p role="alert" className="text-sm text-red-700 dark:text-red-400">{error}</p>
+            <p className="text-sm text-muted-foreground">No quote available.</p>
           ) : quote ? (
             <div className="grid gap-2">
               <PriceDelta basePrice={basePrice} price={quote.price} />

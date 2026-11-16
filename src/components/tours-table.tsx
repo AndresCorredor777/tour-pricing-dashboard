@@ -7,7 +7,7 @@ import type { TourWithPrice } from "@/lib/tours";
 export function ToursTable({ tours }: { tours: TourWithPrice[] }) {
   return (
     <Table>
-      <TableCaption>Synthetic demo data. Suggested prices follow the rules in src/lib/pricing.ts.</TableCaption>
+      <TableCaption>Synthetic demo data. Each suggested price lists the rules that produced it.</TableCaption>
       <TableHeader>
         <TableRow>
           <TableHead>Tour</TableHead>

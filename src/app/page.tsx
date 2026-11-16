@@ -34,7 +34,7 @@ export default function Home() {
           hint="7 days or less and under half full"
         />
         <KpiCard
-          label="Open seats at suggested prices"
+          label="Potential revenue if open seats sell"
           value={usd.format(revenueSuggested)}
           hint={`${openSeats} seats · ${usd.format(revenueBase)} at base prices`}
         />

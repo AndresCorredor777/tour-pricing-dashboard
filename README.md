@@ -7,9 +7,9 @@ All data is **synthetic**. It does not come from any operator.
 ## What it shows
 
 - **Next.js 16 App Router.** The page is a Server Component, so KPIs and the table are computed on the server. Only the simulator is a Client Component (`"use client"`).
-- **REST endpoints.** `GET /api/tours` returns the list with suggested prices. `GET /api/quote?basePrice=&occupancy=&days=` returns one quote and validates its input: a missing or invalid value gets a 400 with a readable message.
-- **A small design system on shadcn/ui** (Base UI primitives + Tailwind CSS 4): `OccupancyBadge`, `PriceDelta`, `KpiCard`, `ToursTable` and `PricingSimulator`, each documented in **Storybook 10** with every state (low/normal/high/full, price up/down/same, empty table, service error).
-- **Behaviour tests** with Vitest: 20 tests for the pricing rules and the quote endpoint.
+- **REST endpoints.** `GET /api/tours` returns the list with suggested prices. `GET /api/quote?basePrice=&occupancy=&days=` returns one quote and validates its input: a missing, blank or non-numeric value, or one out of range, gets a 400 that names the query parameter (for example `days must be a non-negative integer`).
+- **A small design system on shadcn/ui** (Base UI primitives + Tailwind CSS 4): `OccupancyBadge`, `PriceDelta`, `KpiCard`, `ToursTable` and `PricingSimulator`, each with an autodocs page in **Storybook 10** and a story for every state (low/normal/high/full, price up/down/same, empty table, service error).
+- **Behaviour tests** with Vitest for the pricing rules, their threshold edges and the quote endpoint.
 
 ## The pricing rules (`src/lib/pricing.ts`)
 
@@ -19,9 +19,11 @@ All data is **synthetic**. It does not come from any operator.
 | Occupancy 70–89% | +15% |
 | Occupancy under 30% | −10% |
 | Departs within 2 days and under half full | −10% more |
-| Always | kept between 80% and 130% of the base price, rounded to whole dollars |
+| Always | rounded to whole dollars |
 
-Every adjustment adds a plain-language reason, so a person can check the suggestion instead of trusting a number. The rules are pure functions, so the server, the endpoint, the client and Storybook all use the same code and get the same result.
+With these rules the price always lands between 80% and 125% of the base price. Every adjustment adds a plain-language reason, so a person can check the suggestion instead of trusting a number. The occupancy thresholds live in one place and the badge uses the same ones, so the label and the price cannot disagree.
+
+The rules are pure functions. The server page imports them directly. The simulator calls the REST endpoint, even though the function could run in the browser, to show a real client-server integration; in Storybook it calls the function directly, with no server.
 
 A departure is **at risk** when it leaves in 7 days or less and is under half full.
 
@@ -29,7 +31,7 @@ A departure is **at risk** when it leaves in 7 days or less and is under half fu
 
 - **Quote function injected into the simulator.** In the app it calls the REST endpoint; in Storybook it calls the pure function directly, without a server. This keeps the component testable and the stories honest.
 - **The server page does not fetch its own API.** It imports the same functions the API uses. Calling your own route handler from a Server Component adds a network hop for nothing.
-- **Accessibility.** Occupancy level is written as text, not only shown as a colour. The price change has a screen-reader text ("versus base price …"). Quotes are announced with `aria-live`, and errors with `role="alert"`.
+- **Accessibility.** Occupancy level is written as text, not only shown as a colour. The price change has a screen-reader text ("versus base price …"). After the user moves a slider, a short summary ("Suggested price $56, -20% versus base") is announced politely; errors use `role="alert"`, outside that region. Nothing is announced on page load.
 - **Requests are cancelled.** When you move a slider fast, the previous request is aborted, so an old answer cannot overwrite a newer one.
 
 ## Suggestions from tools and AI that were not accepted
@@ -53,7 +55,7 @@ npm run typecheck && npm run lint && npm run build
 
 ## How it was built
 
-Andrés Corredor defined the brief: a dashboard in the domain of tours and activities, to practise Next.js App Router, shadcn/ui and Storybook. The code was written with AI-assisted development (Claude Code), and each step was checked with typecheck, lint, tests, a production build and a smoke test of the running server. The Figma file for the components is Andrés's part of the work.
+Andrés Corredor defined the brief: a dashboard in the domain of tours and activities, to practise Next.js App Router, shadcn/ui and Storybook. The code was written with AI-assisted development (Claude Code), and each step was checked with typecheck, lint, tests, a production build and a smoke test of the running server. A Figma file for the components, made by Andrés with AI-assisted design, will be linked here when it exists.
 
 Not covered yet: GraphQL, real data, authentication, and visual or browser tests.
 

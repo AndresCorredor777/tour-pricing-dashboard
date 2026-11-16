@@ -16,16 +16,30 @@ describe("GET /api/quote", () => {
   it("answers 400 when a parameter is missing", async () => {
     const res = call("basePrice=100&occupancy=0.5");
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toMatch(/required/);
+    expect((await res.json()).error).toBe("required: days");
   });
 
-  it("answers 400 with the validation message for bad values", async () => {
+  it("treats empty or blank values as missing instead of zero", async () => {
+    const res = call("basePrice=100&occupancy=&days=%20");
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("required: occupancy, days");
+  });
+
+  it("names the query parameter in validation errors", async () => {
+    const res = call("basePrice=100&occupancy=0.5&days=-1");
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("days must be a non-negative integer");
+  });
+
+  it("answers 400 for out-of-range occupancy", async () => {
     const res = call("basePrice=100&occupancy=2&days=3");
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toMatch(/occupancy/);
+    expect((await res.json()).error).toBe("occupancy must be between 0 and 1");
   });
 
-  it("answers 400 for non-numeric input", async () => {
-    expect(call("basePrice=abc&occupancy=0.5&days=3").status).toBe(400);
+  it.each(["abc", "0x10", "1e3", "Infinity"])("rejects %s as not a plain number", async (v) => {
+    const res = call(`basePrice=${v}&occupancy=0.5&days=3`);
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("must be a plain number: basePrice");
   });
 });
